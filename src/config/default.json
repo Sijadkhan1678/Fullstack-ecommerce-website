@@ -1,0 +1,10 @@
+{
+    "server": {
+        "PORT": 5000
+    },
+    "dbConfig": {
+        "USER_NAME": "laamclone",
+        "PASSWORD": "pf6qvGqXgjMD6Tgd"
+    },
+    "JWT_SECRET": "SECRET"
+}
