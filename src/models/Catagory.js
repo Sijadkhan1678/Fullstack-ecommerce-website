@@ -6,8 +6,9 @@ const categorySchema = new Schema({
   name: {
     type: String,
     required: [true, 'Category name is required'],
+    maxlength: [100, 'Category name cannot exceed 100 characters'],
     trim: true,
-    maxlength: [100, 'Category name cannot exceed 100 characters']
+
   },
   
   slug: {

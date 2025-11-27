@@ -3,25 +3,24 @@ const { Schema } = mongoose;
 
 const userSchema = new Schema({
   role: {
-    types: String,
+    type: String,
     requred:true,
     enum: ["user", "admin"]
   },
-  full_name: {
+  fullName: {
     type: String,
     required: true,
     trim: true,
   },
   username: {
     type: String,
-    required: true,
     unique: true,
     trim: true,
     lowercase: true,
   },
   avatar: {
     type: String,
-    unique: true,
+
   },
   email: {
     type: String,
