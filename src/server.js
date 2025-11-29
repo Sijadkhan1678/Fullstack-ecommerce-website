@@ -1,9 +1,17 @@
 const express = require('express')
 const app = express()
-const port = process.env === 'production' ?  process.env : 5000;
-// console.log(app.use)
-app.get((req,res)=>{
-    
-    res.send('hello')
-})
-app.listen(5000,()=> console.log(`server listen on port ${port}`))
+const config = require('./config')
+const {PORT} = config.get('server')
+const connectDB = require('./config/db') 
+const authRoute =  require('./routes/auth.routes')
+
+app.use(express.json({extended:false}))
+
+// const port =  === 'production' ?  process.env : 5000;
+connectDB()
+
+app.use('/api/v1/auth',authRoute)
+
+
+
+app.listen(PORT,()=> console.log(`server listen on http://localhost:${PORT}`))
