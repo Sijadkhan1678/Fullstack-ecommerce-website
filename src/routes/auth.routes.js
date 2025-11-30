@@ -1,9 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { register, login } = require('../controllers/auth.controller');
+const { getUser, register, login } = require('../controllers/auth.controller');
+const config = require('../config')
+const jwt = require('jsonwebtoken')
+const JWT_SECRET = config.get('JWT_SECRET')
 
-console.log('register ', register)
+function verifyAuthToken(req, res, next) {
+    try {
+
+        const token = req.headers['token']
+        if (!token) {
+            return res.status(401).json({ message: "token missing" })
+        }
+        const decoded = jwt.verify(token, JWT_SECRET)
+        req.user = decoded.user
+        next()
+    } catch (err) {
+        console.log('jwt Error', err.name)
+
+        res.status(200).json({ Error: err })
+    }
+
+}
+router.route('/user').get(verifyAuthToken, getUser)
 
 router.route('/register').post([
     body('role', 'please provide role').notEmpty().trim(),

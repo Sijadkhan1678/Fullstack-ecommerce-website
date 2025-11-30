@@ -40,7 +40,10 @@ async function register(req, res) {
         await user.save()
 
         const payload = {
-            id: user.id
+            user: {
+                id: user.id
+            }
+
         }
 
         const tokenExpiry = { expiresIn: '2h' }
