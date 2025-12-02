@@ -81,7 +81,9 @@ async function login(req, res) {
         // if both condition is false then generate token for the user
 
         const payload = {
-            id: user.id
+            user: {
+                id: user.id
+            }
         }
         const tokenExpiry = { expiresIn: '2h' }
 
@@ -90,6 +92,7 @@ async function login(req, res) {
         res.status(200).json({ success: true, data: token, message: "User login successfully" })
     }
     catch (err) {
+        
         res.status(500).json({ messsge: "server Error", error: err.message })
     }
 
