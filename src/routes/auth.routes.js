@@ -17,9 +17,8 @@ function verifyAuthToken(req, res, next) {
         req.user = decoded.user
         next()
     } catch (err) {
-        console.log('jwt Error', err.name)
 
-        res.status(200).json({ Error: err })
+        return res.status(401).json({ Error: err })
     }
 
 }
@@ -30,12 +29,12 @@ router.route('/register').post([
     body('fullName', 'please provide fullName', "fullname at least 4 charactors").isLength({ min: 4 }).trim(),
     body('username', 'username at least 4 charactors').isLength({ min: 4 }).trim(),
     body('email', 'please provide a valid email').isEmail().trim(),
-    body('password', 'Please enter password at least 8 charactors').isLength({ min: 6 }).trim(),
+    body('password', 'Please enter password at least 8 charactors').isLength({ min: 8 }).trim(),
 ], register)
 
 router.route('/login').post([
     body('email', 'please provide a valid email').isEmail().trim(),
-    body('password', 'Please enter password at least 8 charactors').isLength({ min: 6 }).trim()
+    body('password', 'Please enter password at least 8 charactors').isLength({ min: 8 }).trim()
 ], login)
 
 
