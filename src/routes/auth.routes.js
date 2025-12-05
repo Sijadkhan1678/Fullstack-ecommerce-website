@@ -27,7 +27,7 @@ router.route('/user').get(verifyAuthToken, getUser)
 router.route('/register').post([
     body('role', 'please provide role').notEmpty().trim(),
     body('fullName', 'please provide fullName', "fullname at least 4 charactors").isLength({ min: 4 }).trim(),
-    body('username', 'username at least 4 charactors').isLength({ min: 4 }).trim(),
+    body('username').trim(),
     body('email', 'please provide a valid email').isEmail().trim(),
     body('password', 'Please enter password at least 8 charactors').isLength({ min: 8 }).trim(),
 ], register)
