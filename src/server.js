@@ -1,17 +1,22 @@
 const express = require('express')
 const app = express()
+const path = require("path")
 const config = require('./config')
-const {PORT} = config.get('server')
-const connectDB = require('./config/db') 
-const authRoute =  require('./routes/auth.routes')
+const { PORT } = config.get('server')
+const connectDB = require('./config/db')
+const authRoute = require('./routes/auth.routes')
 
-app.use(express.json({extended:false}))
+app.use(express.json({ extended: false }))
+app.use("../public", express.static(path.join(__dirname, "public")))
+app.use(express.urlencoded({ extended: true }))
 
 // const port =  === 'production' ?  process.env : 5000;
-connectDB()
+// connectDB()
+app.get('/', (req, res) => {
+    res.json({ message: "Wellcome to LAAM clone" })
+})
+app.use('/api/v1/auth', authRoute)
 
-app.use('/api/v1/auth',authRoute)
 
-
-
-app.listen(PORT,()=> console.log(`server listen on http://localhost:${PORT}`))
+// console.log(app)
+app.listen(PORT, () => console.log(`server listen on http://localhost:${PORT}`))
