@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { getUser, register, login, updateAvatar,deleteUser } = require('../controllers/auth.controller');
+const { getUser, register, login, updatePassword,deleteUser } = require('../controllers/auth.controller');
 const config = require('../config')
 const jwt = require('jsonwebtoken')
 const JWT_SECRET = config.get('JWT_SECRET')
@@ -19,25 +19,24 @@ const storage = multer.diskStorage({
 
 router.route('/register').post([
     body('role', 'please provide role').notEmpty().trim(),
-    body('fullName', 'please provide fullName', "fullname at least 4 charactors").isLength({ min: 4 }).trim(),
-    body('username').trim(),
-    body('email', 'please provide a valid email').isEmail().trim(),
-    body('password', 'Please enter password at least 8 charactors').isLength({ min: 8 }).trim(),
+    body('fullName').isLength({ min: 4 }).withMessage('Fullname must be at least 4 characters').trim(),
+    body('username').optional().trim(),
+    body('email', 'please provide a valid email').isEmail().normalizeEmail(),
+    body('password', 'Please enter password at least 8 characters').isLength({ min: 8 }).trim(),
 ], register)
 
 router.route('/login').post([
     body('email', 'please provide a valid email').isEmail().trim(),
-    body('password', 'Please enter password at least 8 charactors').isLength({ min: 8 }).trim()
+    body('password', 'Please enter password at least 8 characters').isLength({ min: 8 }).trim()
 ], login)
 
-router.route('/user').get(verifyAuthToken, getUser)
+router.route('/user').get(verifyAuthToken, getUser).delete(verifyAuthToken,deleteUser)
+router.route("/user/password").put(verifyAuthToken,updatePassword)
 
-router.delete("/user:id",verifyAuthToken,deleteUser)
+
 // router.route('/avatar').put(upload.single("avatar"),updateAvatar)
-// router.route('/user/updatePassword').put([verifyAuthToken,updatePassword)
 // router.route('/user/addusername').put([body("username","Username at least 4 chararctors long").isLength({min:4}).trim(),verifyAuthToken],updateUsername)
 // router.route('/user/email').put(verifyAuthToken,updateEmail)
-// router.route('/user/delete').delete(verifyAuthToken,deleteUser)
 // console.dir(router.stack[1].route)
 module.exports = router
 
@@ -47,14 +46,14 @@ function verifyAuthToken(req, res, next) {
 
         const token = req.headers['token']
         if (!token) {
-            return res.status(401).json({ message: "token missing" })
+            return res.status(401).json({ message: "Authorization denied,token missing" })
         }
         const decoded = jwt.verify(token, JWT_SECRET)
         req.user = decoded.user
         next()
     } catch (err) {
-
-        return res.status(401).json({ Error: err })
+        
+        return res.status(401).json({ error: err })
     }
 
 }

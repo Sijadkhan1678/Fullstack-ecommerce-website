@@ -16,13 +16,14 @@ async function register(req, res) {
 
     try {
 
-        const isUserExist = await User.findOne({ email })
-        if (isUserExist) {
+        let existingUser = await User.findOne({ email })
+
+        if (existingUser) {
 
             return res.status(401).json({ message: "User registred already with this email" })
         }
 
-        let user = new User({
+        user = new User({
             role,
             fullName,
             username,
@@ -44,7 +45,7 @@ async function register(req, res) {
         const tokenExpiry = { expiresIn: '2h' }
         const token = await jwt.sign(payload, JWT_SECRET, tokenExpiry)
 
-        res.status(201).json({ success: true, data:token, message: "User registered successfully" })
+        res.status(201).json({ success: true, data: { token }, message: "User registered successfully" })
 
     } catch (error) {
 
@@ -63,7 +64,7 @@ async function login(req, res) {
     const { username, email, password } = req.body
     try {
         //  find user with email in the database
-        let user = await User.findOne({ email })
+        const user = await User.findOne({ email })
         // if user not found then return invalid error or credential errror 
         if (!user) {
             return res.status(401).json({ message: 'Invalid Email' })
@@ -85,7 +86,7 @@ async function login(req, res) {
 
         const token = jwt.sign(payload, JWT_SECRET, tokenExpiry)
 
-        res.status(200).json({ success: true, data: token, message: "User login successfully" })
+        res.status(200).json({ success: true, data: { token }, message: "User login successfully" })
     }
     catch (err) {
 
@@ -94,9 +95,10 @@ async function login(req, res) {
 
 }
 async function getUser(req, res) {
-    const { id } = req.user
+
+    const userId = req.user.id
     try {
-        const user = User.findById(id).select('-password');
+        const user = await User.findById(userId).select('-password');
         if (!user) {
             return res.status(403).json({ message: "user not found" })
         }
@@ -109,14 +111,11 @@ async function getUser(req, res) {
     }
 }
 
-async function addAvatar() {
-
-}
 async function updateEmail(req, res) {
-    const { id } = req.user
+    const userId = req.user.id
     const { email } = req.body
     try {
-        const user = await User.findByIdAndUpdate(id, { $set: { email } })
+        const user = await User.findByIdAndUpdate(userId, { $set: { email } })
 
         res.status(200).json({
             success: true,
@@ -125,28 +124,28 @@ async function updateEmail(req, res) {
 
         })
     } catch (err) {
-        res.status(500).json({ message: 'Server Error', Error: err.message })
+        res.status(500).json({ message: 'Server Error', error: err.message })
     }
 }
 async function updatePassword(req, res) {
 
     const result = validationResult(req)
 
-    if (!result.isEmpty) {
-        res.status(401).json({ Errors: result.array() })
+    if (!result.isEmpty()) {
+        res.status(401).json({ errors: result.array() })
     }
     const { currentPassword, newPassword, confirmPassword } = req.body
-
+    const userId = req.user.id
 
     try {
         if (newPassword !== confirmPassword) {
             res.status(401).json({ message: "confirm and new password does not match" })
         }
-        let user = await User.findOne(user.id)
+        let user = await User.findById(userId)
         const dbPassword = user.password
         const isPasswordCorrect = await bcrypt.compare(currentPassword, dbPassword)
         if (!isPasswordCorrect) {
-            res.status(401).json({ message: "oldpassword incorrect" })
+            res.status(401).json({ message: "current password incorrect" })
         }
         const salt = await bcrypt.genSalt(12)
         const hashedPassword = await bcrypt.hash(newPassword, salt)
@@ -157,30 +156,46 @@ async function updatePassword(req, res) {
         res.status(500).json({ message: "Server Error", Error: err.message })
     }
 }
-async function addUsername(req, res) {
+async function updateUsername(req, res) {
 
     const result = validationResult(req)
     if (!result.isEmpty()) {
-        res.status(401).json({ Error: result.array() })
+        res.status(401).json({ errors: result.array() })
     }
-    const id = req.params.id
+    const userId = req.user.id
     const { username } = req.body
     try {
-        const user = await User.findByIdAndUpdate(id, { $set: { username } })
+        const user = await User.findByIdAndUpdate(userId, { $set: { username } })
         res.status(200).json({ success: true, data: user, message: "username added successfully" })
     } catch (err) {
         res.status(500).json({ message: err.message })
     }
 }
+async function updateAvatar(req, res) {
+
+    console.log(req.body.data, req.file)
+    userId = req.user.id
+    try {
+        let user = await User.findByIdAndUpdate(userId, { $set: { avatar: "url of server where avatar of user is saved" } })
+        if (!user) {
+            return res.status(401).json({ message: "user does not exist" })
+        }
+
+        res.status(200).json({success:true, message: "Avatar uploaded successfully" })
+
+    } catch (err) {
+        res.status(500).json({ message: "Server Error", error: err.message })
+    }
+}
 
 async function deleteUser(req, res) {
-    const userId = req.params.id
+    const userId = req.user.id
 
     try {
-       const user =  await User.findByIdAndDelete(userId)
-       if(!user){
-           res.status(401).json({message: "user does not exist with id"})
-       }
+        const user = await User.findByIdAndDelete(userId)
+        if (!user) {
+            res.status(401).json({ message: "user does not exist with id" })
+        }
         console.log(user)
         res.status(200).json({ success: true, message: "User deleted successfully" })
     }
@@ -189,20 +204,5 @@ async function deleteUser(req, res) {
     }
 }
 
-async function updateAvatar(req, res) {
 
-    console.log(req.body.data, req.file)
-    const { id } = req.body
-    try {
-        let user = await User.findByIdAndUpdate(id,{$set:{avatar:"url of server where avatar of user is saved"}})
-        if (!user) {
-            return res.status(401).json({ message: "user does not exist" })
-        }
-
-        res.json({ message: "uploaded" })
-
-    } catch (err) {
-        res.status(500).json({ message: "server", error: err.message })
-    }
-}
-module.exports = { getUser, register, login, updateAvatar,deleteUser }
+module.exports = { getUser, register, login, updateAvatar, updatePassword, deleteUser }
