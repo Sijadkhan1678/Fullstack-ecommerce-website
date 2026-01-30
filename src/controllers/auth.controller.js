@@ -7,7 +7,7 @@ const JWT_SECRET = config.get("JWT_SECRET")
 
 
 async function register(req, res) {
-    console.log(req.body)
+
     const result = validationResult(req)
     if (!result.isEmpty()) {
         return res.status(400).json({ errors: result.array() })
@@ -20,7 +20,7 @@ async function register(req, res) {
 
         if (existingUser) {
 
-            return res.status(401).json({ message: "User registred already with this email" })
+            return res.status(409).json({ message: "User registred already with this email" })
         }
 
         user = new User({
@@ -64,17 +64,15 @@ async function login(req, res) {
     const { username, email, password } = req.body
     try {
         //  find user with email in the database
-        const user = await User.findOne({ email })
-        // if user not found then return invalid error or credential errror 
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid Email' })
-        }
+        const user = await User.findOne({ $or: { email, username } })
+
         // compare user passwrord with database hashedpassword
         const isMatch = await bcrypt.compare(password, user.password)
-        if (!isMatch) {
-            return res.status(401).json({ message: "Incorrect Passwrod" })
-        }
+        // if user not found then return invalid error or credential errror 
         // if both condition is false then generate token for the user
+        if (!user || !isMatch) {
+            return res.status(401).json({ success: false, message: "Invalid credentials" })
+        }
 
         const payload = {
             user: {
@@ -98,9 +96,13 @@ async function getUser(req, res) {
 
     const userId = req.user.id
     try {
-        const user = await User.findById(userId).select('-password');
+        const user = await User.findById(userId).select('-password').lean();
         if (!user) {
-            return res.status(403).json({ message: "user not found" })
+
+            return res.status(404).json({
+                success: false,
+                message: "User account no longer exists"
+            });
         }
 
         res.status(200).json({ success: true, data: user })
@@ -112,6 +114,12 @@ async function getUser(req, res) {
 }
 
 async function updateEmail(req, res) {
+
+    const result = validationResult(req)
+
+    if (!result.isEmpty()) {
+        return res.status(400).json({ success: false, errors: result.array() })
+    }
     const userId = req.user.id
     const { email } = req.body
     try {
@@ -132,8 +140,8 @@ async function updatePassword(req, res) {
     const result = validationResult(req)
 
     if (!result.isEmpty()) {
-        res.status(401).json({ errors: result.array() })
-    }
+        return res.status(400).json({ errors: result.array() })
+    } u
     const { currentPassword, newPassword, confirmPassword } = req.body
     const userId = req.user.id
 
@@ -141,15 +149,15 @@ async function updatePassword(req, res) {
         if (newPassword !== confirmPassword) {
             res.status(401).json({ message: "confirm and new password does not match" })
         }
-        let user = await User.findById(userId)
+        const user = await User.findById(userId).lean()
         const dbPassword = user.password
-        const isPasswordCorrect = await bcrypt.compare(currentPassword, dbPassword)
-        if (!isPasswordCorrect) {
-            res.status(401).json({ message: "current password incorrect" })
+        const isMatch = await bcrypt.compare(currentPassword, dbPassword)
+        if (!isMatch) {
+            return res.status(401).json({ message: "current password incorrect" })
         }
         const salt = await bcrypt.genSalt(12)
         const hashedPassword = await bcrypt.hash(newPassword, salt)
-        user = await User.findByIdAndUpdate(user.id, { $set: { password: hashedPassword } })
+        await User.findByIdAndUpdate(user.id, { $set: { password: hashedPassword } })
         res.status(200).json({ message: "Password SuccessFully Updated" })
     }
     catch (err) {
@@ -160,7 +168,7 @@ async function updateUsername(req, res) {
 
     const result = validationResult(req)
     if (!result.isEmpty()) {
-        res.status(401).json({ errors: result.array() })
+        res.status(400).json({ errors: result.array() })
     }
     const userId = req.user.id
     const { username } = req.body
@@ -181,7 +189,7 @@ async function updateAvatar(req, res) {
             return res.status(401).json({ message: "user does not exist" })
         }
 
-        res.status(200).json({success:true, message: "Avatar uploaded successfully" })
+        res.status(200).json({ success: true, message: "Avatar uploaded successfully" })
 
     } catch (err) {
         res.status(500).json({ message: "Server Error", error: err.message })
@@ -194,7 +202,7 @@ async function deleteUser(req, res) {
     try {
         const user = await User.findByIdAndDelete(userId)
         if (!user) {
-            res.status(401).json({ message: "user does not exist with id" })
+            return res.status(401).json({ message: "user does not exist with id" })
         }
         console.log(user)
         res.status(200).json({ success: true, message: "User deleted successfully" })
