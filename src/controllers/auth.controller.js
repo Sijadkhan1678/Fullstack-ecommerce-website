@@ -63,7 +63,7 @@ async function login(req, res) {
     }
     const { username, email, password } = req.body
     try {
-        //  find user with email in the database
+        //  find user with email and username in the database
         const user = await User.findOne({ $or: { email, username } })
 
         // compare user passwrord with database hashedpassword
@@ -141,13 +141,14 @@ async function updatePassword(req, res) {
 
     if (!result.isEmpty()) {
         return res.status(400).json({ errors: result.array() })
-    } u
+    }
+
     const { currentPassword, newPassword, confirmPassword } = req.body
     const userId = req.user.id
 
     try {
         if (newPassword !== confirmPassword) {
-            res.status(401).json({ message: "confirm and new password does not match" })
+            return res.status(401).json({ message: "confirm and new password does not match" })
         }
         const user = await User.findById(userId).lean()
         const dbPassword = user.password
@@ -213,4 +214,4 @@ async function deleteUser(req, res) {
 }
 
 
-module.exports = { getUser, register, login, updateAvatar, updatePassword, deleteUser }
+module.exports = { getUser, register, login, updateEmail, updateUsername, updateAvatar, updatePassword, deleteUser }
