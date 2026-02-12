@@ -2,21 +2,9 @@ const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
 const { getUser, register, login, updatePassword, deleteUser, updateEmail, updateUsername } = require('../controllers/auth.controller');
-const config = require('../config')
-const jwt = require('jsonwebtoken')
-const JWT_SECRET = config.get('JWT_SECRET')
+const verifyAuthToken = require('../middlewares/auth')
+// const fileUploader = require('../middlewares/uploader')
 
-const multer = require('multer')
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'public/profile')
-    },
-    filename: function (req, file, cb) {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-        cb(null, file.fieldname + '-' + uniqueSuffix + "." + file.mimetype.split('/')[1])
-    }
-})
-const upload = storage
 
 router.route('/register').post([
     body('role', 'please provide role').notEmpty().trim(),
@@ -50,27 +38,8 @@ router.route('/users/me/email').put([
 ], updateEmail)
 
 
-// router.route('/avatar').put(upload.single("avatar"),updateAvatar)
+// router.route('/avatar').put(fileUploader.single("avatar"),function))
 // console.dir(router.stack[1].route)
 module.exports = router
-
-// middlewares
-function verifyAuthToken(req, res, next) {
-    try {
-
-        const token = req.headers['token']
-        if (!token) {
-            return res.status(401).json({ message: "Authorization denied,token missing" })
-        }
-        const decoded = jwt.verify(token, JWT_SECRET)
-        req.user = decoded.user
-        next()
-    } catch (err) {
-
-        return res.status(401).json({ error: err })
-    }
-
-}
-
 
 
