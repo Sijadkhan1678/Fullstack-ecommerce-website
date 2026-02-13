@@ -1,17 +1,11 @@
 const User = require("../models/User")
-const { validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs')
 const jwt = require("jsonwebtoken")
 const config = require('../config');
 const JWT_SECRET = config.get("JWT_SECRET")
 
-
 async function register(req, res) {
 
-    const result = validationResult(req)
-    if (!result.isEmpty()) {
-        return res.status(400).json({ errors: result.array() })
-    }
     const { role, fullName, username, email, password } = req.body
 
     try {
@@ -55,16 +49,11 @@ async function register(req, res) {
 }
 
 async function login(req, res) {
-    // user credential validation
-    const result = validationResult(req)
-    // if result not empty there will be error
-    if (!result.isEmpty()) {
-        return res.status(400).json({ errors: result.array() })
-    }
+
     const { username, email, password } = req.body
     try {
         //  find user with email and username in the database
-        const user = await User.findOne({ $or: { email, username } })
+        const user = await User.findOne({ $or: [{email},{ username}] })
 
         // compare user passwrord with database hashedpassword
         const isMatch = await bcrypt.compare(password, user.password)
@@ -115,15 +104,10 @@ async function getUser(req, res) {
 
 async function updateEmail(req, res) {
 
-    const result = validationResult(req)
-
-    if (!result.isEmpty()) {
-        return res.status(400).json({ success: false, errors: result.array() })
-    }
     const userId = req.user.id
     const { email } = req.body
     try {
-        const user = await User.findByIdAndUpdate(userId, { $set: { email } })
+        const user = await User.findByIdAndUpdate(userId, { $set: { email } }).select('-password').lean()
 
         res.status(200).json({
             success: true,
@@ -135,18 +119,14 @@ async function updateEmail(req, res) {
         res.status(500).json({ message: 'Server Error', error: err.message })
     }
 }
+
 async function updatePassword(req, res) {
-
-    const result = validationResult(req)
-
-    if (!result.isEmpty()) {
-        return res.status(400).json({ errors: result.array() })
-    }
 
     const { currentPassword, newPassword, confirmPassword } = req.body
     const userId = req.user.id
 
     try {
+
         if (newPassword !== confirmPassword) {
             return res.status(401).json({ message: "confirm and new password does not match" })
         }
@@ -167,10 +147,6 @@ async function updatePassword(req, res) {
 }
 async function updateUsername(req, res) {
 
-    const result = validationResult(req)
-    if (!result.isEmpty()) {
-        res.status(400).json({ errors: result.array() })
-    }
     const userId = req.user.id
     const { username } = req.body
     try {
@@ -198,6 +174,7 @@ async function updateAvatar(req, res) {
 }
 
 async function deleteUser(req, res) {
+
     const userId = req.user.id
 
     try {
