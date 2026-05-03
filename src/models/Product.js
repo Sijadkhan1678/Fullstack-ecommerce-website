@@ -1,14 +1,18 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const productSchema = new Schema(
-  {
+const productSchema = new Schema({
     name: {
       type: String,
       required: true
     },
     slug: {
-      type: String
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens']
     },
     price: {
       type: Number,
@@ -33,11 +37,8 @@ const productSchema = new Schema(
     dupattaType: {
       type: String,
     },
-    productId: {
-      type: String,
-    },
     liningAttached: {
-      type: String,   
+      type: String,
     },
     noOfPieces: {
       type: String,
@@ -69,15 +70,20 @@ const productSchema = new Schema(
     workTechnique: {
       type: String
     },
-    mainCategory: {
-      type: Schema.Types.ObjectId,
-      ref: "Category",
-      required: true
-    },
-    subCategory: {
-      type: String,
-      required: true,
-      trim: true
+    category: {
+      primary: {
+        type: Schema.Types.ObjectId,
+        ref: "Category",
+        required: true,
+      },
+      ancestors: [{
+        _id: {
+          type: Schema.Types.ObjectId,
+          ref: 'Category'
+        },
+        name: String,
+        slug: String,
+      }]
     }
   },
   { timestamps: true }
