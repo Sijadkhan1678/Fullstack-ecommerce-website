@@ -17,6 +17,10 @@ const orderSchema = new mongoose.Schema({
       required: true,
       min: 1
     },
+    price: {
+      type: Number,
+      required: true,
+    }
   }],
   totalAmount: {
     type: Number,
@@ -28,11 +32,11 @@ const orderSchema = new mongoose.Schema({
     default: 'pending'
   },
   shippingAddress: {
-    street: { type: String, required: true },
+    country: { type: String, required: true },
     city: { type: String, required: true },
     state: { type: String, required: true },
+    street: { type: String, required: true },
     postalCode: { type: String, required: true },
-    country: { type: String, required: true }
   },
   paymentDetails: {
     method: { type: String, required: true },
