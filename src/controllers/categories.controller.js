@@ -4,7 +4,7 @@ const Category = require("../models/Catagory")
 exports.createCategory = async (req, res) => {
     try {
         const { name, slug, image, parentId, description, isActive } = req.body
-        
+
         // db call for category whether category exist or not on basis of name and slug or parentId  
 
         const existCategory = await Category.findOne({ $or: [{ name }, { _id: parentId }] }).select("_id name slug ancestors");
@@ -16,8 +16,8 @@ exports.createCategory = async (req, res) => {
             return res.status(409).json({ success: false, message: 'category already exist with this name' })
 
         }
-        if(existCategory.ancestors.find((category)=> name === name)){
-         return res.status(409).json({success: false, message: "this"})
+        if (existCategory.ancestors.find((category) => name === name)) {
+            return res.status(409).json({ success: false, message: "this" })
         }
         // check for parent category existence in the database 
         if (existCategory?._id.equals(parentId)) {
@@ -36,8 +36,17 @@ exports.createCategory = async (req, res) => {
         await category.save()
         res.status(201).json({ success: true, data: { category } })
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server Error", error: err.message })
+        if (err.code === 11000) {
+            const { name, slug } = err.keyValue
+            errorMessage = name ? `${name} category already exist` : `${slug} slug already exist`
+            res.status(409).json({ success: false, message: errorMessage })
+
+        } else {
+            res.status(500).json({ success: false, message: "server error", error: err.message })
+
+        }
     }
+}
 
 }
 
