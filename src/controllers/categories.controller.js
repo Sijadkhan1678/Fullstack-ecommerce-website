@@ -63,15 +63,49 @@ exports.getCategories = async (req, res) => {
 
 }
 exports.getCategory = async (req, res) => {
-
+    const { id } = req.params
+    console.log(req.params.id)
     try {
-        res.status(200).json({ messge: "get single category" })
+
+        const categories = await Category.find({
+            $or: [{ _id: id },
+            // isActive: true,
+            {
+                ancestors: {
+                    $elemMatch: { _id: id }
+                }
+            }]
+        }).select('_id name slug ancestors')
+
+        if (!categories.length) {
+            return res.status(404).json({ success: false, message: "Category not found" })
+        }
+
+        const parentCategory = categories.find(category => category._id.equals(id))
+        const childCategories = categories.filter(category => !category._id.equals(id))
+        console.log(parentCategory)
+        const ancestors = parentCategory.ancestors
+        const { name, slug } = parentCategory
+        console.log(ancestors.length)
+        const breadCrumb = ancestors.length == 0 ? {
+            href: slug,
+            name: name,
+        } : ancestors.map((category) => ({
+            href: category.slug,
+            name: category.name
+        })).unshift({
+            href: slug,
+            name: name,
+        })
+        // const breadCrumb = ancestors.length === 0 ? { name, slug } : { href: slug, name, ...ancestors.map((category) => ({ name: category.name, slug: category.slug })) }
+        console.log(breadCrumb)
+
+        res.status(200).json({ success: true, data: { parentCategory, childCategories, breadCrumb } })
+
     } catch (err) {
         res.status(500).json({ success: false, message: "Server Error", error: err.message })
     }
-
 }
-
 exports.deleteCategory = async (req, res) => {
     const { id } = req.params
     try {
