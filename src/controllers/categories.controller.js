@@ -109,10 +109,17 @@ exports.getCategory = async (req, res) => {
 exports.deleteCategory = async (req, res) => {
     const { id } = req.params
     try {
+        const deletedCategory = await Category.findByIdAndDelete({ _id: id })
+        if (!deletedCategory) {
+            return res.status(404).json({ status: false, message: "Category Not Found" })
+        }
+        const updatedCategory = await Category.updateMany({}, { $pull: { ancestors: { _id: id } } })
+        console.log(updatedCategory)
+        console.log(deletedCategory)
 
-        res.status(200).json({ success: true, message: "Category successfully deleted" })
+        res.status(200).json({ success: true, message: "Category successfully deleted", data: deletedCategory })
 
     } catch (err) {
-        res.status(500).json({ success: false, message: "Server Error", error: err.message })
+        rest.status(500).json({ success: false, message: "Server Error", error: err.message })
     }
 }
