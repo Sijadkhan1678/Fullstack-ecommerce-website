@@ -26,10 +26,6 @@ const categorySchema = new Schema({
 
   ancestors: {
     type: [{
-      _id: {
-        type: Schema.Types.ObjectId,
-        ref: 'Category'
-      },
       name: String,
       slug: String,
     }],
