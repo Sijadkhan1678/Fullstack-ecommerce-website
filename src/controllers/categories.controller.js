@@ -3,38 +3,76 @@ const Category = require("../models/Catagory")
 
 exports.createCategory = async (req, res) => {
     try {
-        const { name, slug, image, parentId, description, isActive } = req.body
+        const { name, slug, image, parentId, description, isActive } = req.body;
 
         // db call for category whether category exist or not on basis of name and slug or parentId  
+        if (!parentId) {
 
-        const existCategory = await Category.findOne({ $or: [{ name }, { _id: parentId }] }).select("_id name slug ancestors");
-        // console.log(existCategory?._id)
-        const category = new Category({ name, slug, image, description, isActive, })
-        // console.log(category)
-        if (existCategory.name === name) {
+            const existCategory = await Category.findOne({ $or: [{ name, parentId: null }, { name, parentId: null }] }).select("_id name slug ancestors");
 
-            return res.status(409).json({ success: false, message: 'category already exist with this name' })
+            if (existCategory?.name === name) {
 
-        }
-        if (existCategory.ancestors.find((category) => name === name)) {
-            return res.status(409).json({ success: false, message: "this" })
-        }
-        // check for parent category existence in the database 
-        if (existCategory?._id.equals(parentId)) {
-            console.log("parentId === existcategoryid")
-            const { _id, name, slug, ancestors, } = existCategory
-            const parentCategory = {
-                _id,
-                name,
-                slug
+                return res.status(409).json({ success: false, message: "Category already exist with this name" })
             }
-            ancestors.length ? category.ancestors.push(...ancestors, parentCategory) : category.ancestors.push(parentCategory)
-            category.slug = slug + '-' + category.slug
-            category.parentId = parentId
+
+            if (existCategory?.slug === slug) {
+                return res.status(409).json({ success: false, message: "Category already exist with this slug" })
+            }
+
+            const category = new Category({ name, slug, image, description, isActive });
+            await category.save()
+            res.status(201).json({ success: true, data: { category } })
+
         }
 
-        await category.save()
-        res.status(201).json({ success: true, data: { category } })
+        if (parentId) {
+
+            const categories = await Category.find({ $or: [{ _id: parentId }, { parentId: parentId }] }).select("_id name slug parentId ancestors")
+
+            const parentCategory = categories.find(category => category._id?.toString() === parentId)
+
+            const childCategories = categories.filter(category => category.parentId?.toString() === parentId)
+
+            const isDuplicateChildName  = childCategories.some(childCategory => childCategory.name === name)
+
+            if (isDuplicateChildName ) {
+                return res.status(409).json({ success: false, message: "child Category already exist with this name" })
+            }
+            if (parentCategory.slug === slug) {
+                return res.status(409).json({ success: false, message: "Category already exist with this slug" })
+            }
+            if (!parentCategory) {
+                return res.status(404).json("ParentCategory Not Found")
+            }
+
+            if (parentCategory?.name === name) {
+
+                return res.status(409).json({ success: false, message: `${name} cant takeover its parent category name` })
+
+            }
+
+            const category = new Category({ name, slug, image, description, parentId, isActive });
+
+            // if (existCategory?._id.equals(parentId))
+
+            category.slug = `${parentCategory.slug}-${category.slug}`
+
+            const isChildSlugDuplicated = childCategories.some(childCategory => childCategory.slug === category.slug)
+            
+            if (isChildSlugDuplicated) {
+                return res.status(409).json({ success: false, message: "Category already exist with this slug" })
+            }
+
+            category.ancestors.push(...existingParentCategory.ancestors, {
+                name: existingParentCategory.name,
+                slug: existingParentCategory.slug
+            })
+            await category.save()
+            res.status(201).json({ success: true, data: { category } })
+
+        }
+
+
     } catch (err) {
         if (err.code === 11000) {
             const { name, slug } = err.keyValue
