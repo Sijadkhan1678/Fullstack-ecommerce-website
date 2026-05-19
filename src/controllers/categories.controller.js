@@ -33,9 +33,9 @@ exports.createCategory = async (req, res) => {
 
             const childCategories = categories.filter(category => category.parentId?.toString() === parentId)
 
-            const isDuplicateChildName  = childCategories.some(childCategory => childCategory.name === name)
+            const isDuplicateChildName = childCategories.some(childCategory => childCategory.name === name)
 
-            if (isDuplicateChildName ) {
+            if (isDuplicateChildName) {
                 return res.status(409).json({ success: false, message: "child Category already exist with this name" })
             }
             if (parentCategory.slug === slug) {
@@ -53,12 +53,10 @@ exports.createCategory = async (req, res) => {
 
             const category = new Category({ name, slug, image, description, parentId, isActive });
 
-            // if (existCategory?._id.equals(parentId))
-
             category.slug = `${parentCategory.slug}-${category.slug}`
 
             const isChildSlugDuplicated = childCategories.some(childCategory => childCategory.slug === category.slug)
-            
+
             if (isChildSlugDuplicated) {
                 return res.status(409).json({ success: false, message: "Category already exist with this slug" })
             }
@@ -102,48 +100,41 @@ exports.getCategories = async (req, res) => {
 }
 exports.getCategory = async (req, res) => {
     const { id } = req.params
-    console.log(req.params.id)
     try {
 
         const categories = await Category.find({
-            $or: [{ _id: id },
-            // isActive: true,
-            {
-                ancestors: {
-                    $elemMatch: { _id: id }
-                }
-            }]
-        }).select('_id name slug ancestors')
+            $or: [
+                { _id: id },
+                { parentId: id },
+            ]
+        }).select('_id name slug image ancestors')
 
         if (!categories.length) {
             return res.status(404).json({ success: false, message: "Category not found" })
         }
 
-        const parentCategory = categories.find(category => category._id.equals(id))
-        const childCategories = categories.filter(category => !category._id.equals(id))
-        console.log(parentCategory)
-        const ancestors = parentCategory.ancestors
-        const { name, slug } = parentCategory
+        const category = categories.find(category => category._id.equals(id))
+
+        const childeren = categories.filter(category => !category._id.equals(id))
+
+        const { name, slug,ancestors } = category
+
         console.log(ancestors.length)
-        const breadCrumb = ancestors.length == 0 ? {
-            href: slug,
-            name: name,
-        } : ancestors.map((category) => ({
+
+        const path = ancestors.map((category) => ({
             href: category.slug,
             name: category.name
-        })).unshift({
-            href: slug,
-            name: name,
-        })
-        // const breadCrumb = ancestors.length === 0 ? { name, slug } : { href: slug, name, ...ancestors.map((category) => ({ name: category.name, slug: category.slug })) }
-        console.log(breadCrumb)
+        }))
 
-        res.status(200).json({ success: true, data: { parentCategory, childCategories, breadCrumb } })
+       path.push({name,slug})
+
+        res.status(200).json({ success: true, data: { category, childeren, path } })
 
     } catch (err) {
         res.status(500).json({ success: false, message: "Server Error", error: err.message })
     }
 }
+
 exports.deleteCategory = async (req, res) => {
     const { id } = req.params
     try {
