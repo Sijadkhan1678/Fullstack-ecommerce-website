@@ -7,9 +7,10 @@ const connectDB = require('./config/db')
 const authRoute = require('./routes/auth.routes')
 const usersRoutes = require("./routes/users.routes")
 const {categoriesRoutes} = require("./routes/categories.routes")
+const Category = require("./models/Catagory")
 // categoriesRoutes
 app.use(express.json({ extended: false }))
-app.use("../public", express.static(path.join(__dirname, "public")))
+app.use(express.static(path.join(__dirname, "public")))
 app.use(express.urlencoded({ extended: true }))
 
 // const port =  === 'production' ?  process.env : 5000;
@@ -19,7 +20,20 @@ app.get('/', (req, res) => {
 })
 app.use('/api/v1/auth', authRoute)
 app.use('/api/v1/users', usersRoutes)
-// app.use('/api/v1/categories', categoriesRoutes)
+app.use('/api/v1/categories', categoriesRoutes)
+// setTimeout(()=>{
+//     (async () => {
+//         try {
+          
+//           const result = await Category.deleteMany({});
+//           console.log(`Deleted ${result.deletedCount} documents.`);
+//         } catch (err) {
+//           console.error('Error deleting documents:', err);
+//         }
+//       })();
+      
+// }
+// ,3000)
 
 // console.log(app)
 app.listen(PORT, () => console.log(`server listen on http://localhost:${PORT}`))

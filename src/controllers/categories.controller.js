@@ -1,14 +1,15 @@
 const Category = require("../models/Catagory")
-
+const { uploadToCloudinary } = require("../utills")
 
 exports.createCategory = async (req, res) => {
     try {
-        const { name, slug, image, parentId, description, isActive } = req.body;
+        const { name, slug, parentId, description, isActive } = req.body;
+        let image  = req.body.image
 
         // db call for category whether category exist or not on basis of name and slug or parentId  
         if (!parentId) {
 
-            const existCategory = await Category.findOne({ $or: [{ name, parentId: null }, { name, parentId: null }] }).select("_id name slug ancestors");
+            const existCategory = await Category.findOne({ name, parentId: null }).select("_id name slug ancestors");
 
             if (existCategory?.name === name) {
 
@@ -18,6 +19,11 @@ exports.createCategory = async (req, res) => {
             if (existCategory?.slug === slug) {
                 return res.status(409).json({ success: false, message: "Category already exist with this slug" })
             }
+
+            if (req.file) {
+                image = await uploadToCloudinary(req.file.path)
+            }
+
 
             const category = new Category({ name, slug, image, description, isActive });
             await category.save()
@@ -51,6 +57,10 @@ exports.createCategory = async (req, res) => {
 
             }
 
+            if (req.file) {
+                image = await uploadToCloudinary(req.file.path)
+            }
+
             const category = new Category({ name, slug, image, description, parentId, isActive });
 
             category.slug = `${parentCategory.slug}-${category.slug}`
@@ -61,9 +71,9 @@ exports.createCategory = async (req, res) => {
                 return res.status(409).json({ success: false, message: "Category already exist with this slug" })
             }
 
-            category.ancestors.push(...existingParentCategory.ancestors, {
-                name: existingParentCategory.name,
-                slug: existingParentCategory.slug
+            category.ancestors.push(...parentCategory.ancestors, {
+                name: parentCategory.name,
+                slug: parentCategory.slug
             })
             await category.save()
             res.status(201).json({ success: true, data: { category } })
@@ -117,7 +127,7 @@ exports.getCategory = async (req, res) => {
 
         const childeren = categories.filter(category => !category._id.equals(id))
 
-        const { name, slug,ancestors } = category
+        const { name, slug, ancestors } = category
 
         console.log(ancestors.length)
 
@@ -126,7 +136,7 @@ exports.getCategory = async (req, res) => {
             name: category.name
         }))
 
-       path.push({name,slug})
+        path.push({ name, slug })
 
         res.status(200).json({ success: true, data: { category, childeren, path } })
 
